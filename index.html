@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>VANTAGE. | Personal OS</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#000000;--surface:#0a0a0a;--surface2:#161616;--border:#262626;
+  --accent:#dfff00;--accent2:#47ffd4;--accent3:#ff6b47;
+  --text:#ffffff;--muted:#a3a3a3;--muted2:#2a2a2a;
+  --green:#4ade80;--red:#f87171;--yellow:#fbbf24;--pink:#f472b6;--blue:#38bdf8;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.4}
+
+/* AUTH */
+#auth-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:1000;padding:24px}
+.auth-box{background:var(--surface);border:2px solid var(--border);border-radius:12px;padding:40px;width:100%;max-width:400px;box-shadow: 0 0 40px rgba(223, 255, 0, 0.05)}
+.auth-logo{font-size:2.5rem;font-weight:800;letter-spacing:-2px;margin-bottom:6px;text-align:center}
+.auth-logo span{color:var(--accent)}
+.auth-sub{font-size:0.7rem;color:var(--accent);font-family:'Space Mono',monospace;margin-bottom:32px;text-align:center;text-transform:uppercase;letter-spacing:2px}
+.auth-tabs{display:flex;gap:6px;margin-bottom:24px}
+.auth-tab{flex:1;padding:9px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:600;cursor:pointer;transition:all .15s}
+.auth-tab.active{background:var(--accent);border-color:var(--accent);color:#000}
+.auth-field{margin-bottom:14px}
+.auth-label{font-size:0.65rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted);font-family:'Space Mono',monospace;margin-bottom:6px;display:block;font-weight:700}
+.inp{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text);font-family:'Syne',sans-serif;font-size:0.9rem;width:100%;outline:none;transition:border-color .15s}
+.inp:focus{border-color:var(--accent)}
+.auth-btn{width:100%;background:var(--accent);color:#000;border:none;border-radius:8px;padding:13px;font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer;margin-top:8px;transition:all .15s}
+.auth-btn:hover{background:#cce800;transform:translateY(-1px)}
+.auth-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.auth-err{color:var(--red);font-size:0.75rem;margin-top:10px;font-family:'Space Mono',monospace;min-height:18px}
+.auth-ok{color:var(--green);font-size:0.75rem;margin-top:10px;font-family:'Space Mono',monospace}
+
+/* APP LAYOUT */
+#app{display:none;grid-template-columns:240px 1fr;min-height:100vh;position:relative;z-index:1}
+#app.visible{display:grid}
+.sidebar{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.logo{padding:28px 24px 20px;border-bottom:1px solid var(--border)}
+.logo-mark{font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--accent);letter-spacing:4px;text-transform:uppercase;margin-bottom:6px}
+.logo-text{font-size:1.6rem;font-weight:800;letter-spacing:-1px}
+.logo-text span{color:var(--accent)}
+.nav{padding:16px 12px;flex:1}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;font-size:0.82rem;font-weight:600;color:var(--muted);transition:all .15s;margin-bottom:2px;border:1px solid transparent}
+.nav-item:hover{color:var(--text);background:var(--surface2)}
+.nav-item.active{color:var(--accent);background:rgba(223, 255, 0, 0.05);border-color:rgba(223, 255, 0, 0.2)}
+.nav-icon{font-size:1rem;width:20px;text-align:center}
+.sidebar-footer{padding:16px;border-top:1px solid var(--border)}
+.user-badge{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px}
+.user-email{font-size:0.68rem;color:var(--muted);font-family:'Space Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.month-badge{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:0.75rem;color:var(--muted);font-family:'Space Mono',monospace}
+.month-badge strong{color:var(--text);display:block;font-size:0.88rem;margin-bottom:2px}
+.logout-btn{width:100%;background:transparent;border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--muted);font-family:'Syne',sans-serif;font-size:0.75rem;cursor:pointer;margin-top:8px;transition:all .15s}
+.logout-btn:hover{border-color:var(--red);color:var(--red)}
+
+/* MAIN */
+.main{overflow-y:auto;padding:32px}
+.page{display:none}
+.page.active{display:block}
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:32px;flex-wrap:wrap;gap:16px}
+.page-title{font-size:2.2rem;font-weight:800;letter-spacing:-1.5px;line-height:1}
+.page-title span{color:var(--accent)}
+.page-sub{font-size:0.75rem;color:var(--muted);margin-top:6px;font-family:'Space Mono',monospace;text-transform:uppercase;letter-spacing:1px}
+.section-gap{margin-bottom:20px}
+
+/* GRID */
+.grid{display:grid;gap:12px}
+.g4{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px}
+.card-label{font-size:0.65rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:8px;font-family:'Space Mono',monospace;font-weight:700}
+.stat-big{font-size:2.2rem;font-weight:800;letter-spacing:-1px;line-height:1}
+.stat-sub{font-size:0.72rem;color:var(--muted);margin-top:4px}
+.tag{display:inline-block;font-size:0.65rem;font-family:'Space Mono',monospace;padding:3px 8px;border-radius:4px;margin-top:8px;font-weight:700}
+.tag-g{background:#0d2a17;color:var(--green)}
+.tag-y{background:#2a1f00;color:var(--yellow)}
+.tag-r{background:#2a0d0d;color:var(--red)}
+.tag-a{background:rgba(223, 255, 0, 0.1);color:var(--accent)}
+
+/* INPUTS */
+.inp-group{display:flex;flex-direction:column;gap:6px}
+.inp-label{font-size:0.62rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted);font-family:'Space Mono',monospace;font-weight:700}
+.inp[type=range]{padding:6px 0;cursor:pointer;accent-color:var(--accent)}
+.mood-display{font-size:1.4rem;font-weight:800;color:var(--accent);text-align:center;min-width:32px}
+.flex-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.today-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+
+/* HABITS */
+.habit-list{display:flex;flex-direction:column;gap:4px}
+.habit-item{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);transition:all .15s;cursor:pointer;user-select:none}
+.habit-item:hover{border-color:#333}
+.habit-item.done{background:#0d1a0d;border-color:#1a3a1a}
+.habit-left{display:flex;align-items:center;gap:10px}
+.habit-cb{width:18px;height:18px;border-radius:4px;border:2px solid var(--border);background:transparent;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;font-size:0.7rem}
+.habit-item.done .habit-cb{background:var(--green);border-color:var(--green);color:#000}
+.habit-name{font-size:0.85rem;font-weight:600}
+
+/* GOALS */
+.goals-section{margin-bottom:20px}
+.goals-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.goals-title{font-size:0.62rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted);font-family:'Space Mono',monospace;font-weight:700}
+.goal-item{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:8px;transition:all .3s;position:relative;overflow:hidden}
+.goal-item.urgent-1{border-color:#3a3a00;background:#1a1a00}
+.goal-item.urgent-2{border-color:#5a3a00;background:#1a1000;animation:urgentPulse2 2s infinite}
+.goal-item.urgent-3{border-color:#8a1a00;background:#1a0500;animation:urgentPulse3 1s infinite}
+.goal-item.overdue{border-color:var(--red);background:#1a0505}
+@keyframes urgentPulse2{0%,100%{box-shadow:0 0 0 0 rgba(251,191,36,0)}50%{box-shadow:0 0 8px 2px rgba(251,191,36,0.15)}}
+@keyframes urgentPulse3{0%,100%{box-shadow:0 0 0 0 rgba(248,113,113,0)}50%{box-shadow:0 0 12px 3px rgba(248,113,113,0.25)}}
+.goal-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}
+.goal-name{font-size:0.85rem;font-weight:700;line-height:1.3;flex:1}
+.goal-deadline{font-size:0.65rem;font-family:'Space Mono',monospace;padding:3px 8px;border-radius:4px;white-space:nowrap;flex-shrink:0}
+.deadline-ok{background:#0d2a17;color:var(--green)}
+.deadline-soon{background:#2a1f00;color:var(--yellow)}
+.deadline-urgent{background:#3a1500;color:#fb923c}
+.deadline-critical{background:#2a0d0d;color:var(--red);font-weight:700}
+.deadline-overdue{background:#3a0000;color:#ff4444;font-weight:700}
+.goal-progress-row{display:flex;align-items:center;gap:10px}
+.goal-slider{flex:1;cursor:pointer;accent-color:var(--accent);height:4px}
+.goal-score{font-size:0.8rem;font-weight:700;font-family:'Space Mono',monospace;min-width:32px;text-align:right;color:var(--accent)}
+.goal-countdown{font-size:0.62rem;color:var(--muted);font-family:'Space Mono',monospace;margin-top:6px}
+.goal-countdown.urgent{color:var(--yellow)}
+.goal-countdown.critical{color:#fb923c;font-weight:700}
+.goal-countdown.overdue{color:var(--red);font-weight:700}
+
+/* SETTINGS GOALS EDITOR */
+.goal-edit-item{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:8px}
+.goal-edit-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.goal-edit-row:last-child{margin-bottom:0}
+.goal-type-badge{font-size:0.62rem;font-family:'Space Mono',monospace;padding:3px 8px;border-radius:4px;white-space:nowrap}
+.type-weekly{background:#001a15;color:var(--accent2)}
+.type-monthly{background:rgba(223, 255, 0, 0.1);color:var(--accent)}
+
+/* CALENDAR */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:16px}
+.cal-header{text-align:center;font-size:0.6rem;font-family:'Space Mono',monospace;color:var(--muted);padding:4px 0}
+.cal-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:6px;cursor:pointer;font-size:0.78rem;font-weight:600;background:var(--surface2);border:1px solid var(--border);transition:all .15s;position:relative}
+.cal-day:hover{border-color:var(--accent);color:var(--accent)}
+.cal-day.today{border-color:var(--accent);color:var(--accent);background:rgba(223, 255, 0, 0.05)}
+.cal-day.has-log{background:#0d1a0d;border-color:#1a3a1a}
+.cal-day.has-log::after{content:'';position:absolute;bottom:3px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--green)}
+.cal-day.selected{background:var(--accent);color:#000;border-color:var(--accent)}
+.cal-day.empty{background:transparent;border-color:transparent;cursor:default}
+.cal-day.empty:hover{border-color:transparent;color:inherit}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.cal-nav-btn{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 12px;color:var(--text);cursor:pointer;font-family:'Syne',sans-serif;font-size:0.8rem;transition:all .15s}
+.cal-nav-btn:hover{border-color:var(--accent);color:var(--accent)}
+.cal-month-label{font-size:0.82rem;font-weight:700;font-family:'Space Mono',monospace}
+
+/* VOICE */
+.voice-btn{display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 18px;cursor:pointer;font-family:'Syne',sans-serif;font-size:0.85rem;font-weight:600;color:var(--text);width:100%;transition:all .2s}
+.voice-btn:hover{border-color:var(--accent2);color:var(--accent2)}
+.voice-btn.recording{background:#001a15;border-color:var(--accent2);color:var(--accent2);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+.transcript-box{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:0.82rem;line-height:1.6;color:var(--muted);min-height:52px;margin-top:8px;font-style:italic}
+.transcript-box.has-text{color:var(--text);font-style:normal}
+
+/* AI FEEDBACK */
+.feedback-box{background:linear-gradient(135deg,#0d1a00,#000000);border:1px solid #1a3a00;border-radius:12px;padding:20px;font-size:0.83rem;line-height:1.7;position:relative}
+.fb-title{font-size:0.62rem;text-transform:uppercase;letter-spacing:2px;color:var(--accent);font-family:'Space Mono',monospace;margin-bottom:10px}
+.fb-text{color:#b0d090}
+.analyze-btn{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--accent);color:#000;border:none;border-radius:8px;padding:12px 20px;font-family:'Syne',sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;width:100%;transition:all .15s;margin-top:10px}
+.analyze-btn:hover{background:#cce800;transform:translateY(-1px)}
+.analyze-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+/* HEATMAP */
+.heatmap-wrap{overflow-x:auto}
+.heatmap-row{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.hm-label{width:165px;flex-shrink:0;font-size:0.72rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hm-dots{display:flex;gap:3px}
+.hm-dot{width:13px;height:13px;border-radius:3px;cursor:default;flex-shrink:0;transition:transform .1s}
+.hm-dot:hover{transform:scale(1.4)}
+.hm-pct{font-size:0.68rem;font-family:'Space Mono',monospace;min-width:32px;text-align:right}
+
+/* CHARTS */
+.mood-chart{display:flex;align-items:flex-end;gap:3px;height:70px}
+.mb-wrap{display:flex;flex-direction:column;align-items:center;flex:1;height:100%;justify-content:flex-end}
+.mb{width:100%;border-radius:2px 2px 0 0;min-height:3px}
+.mb-lbl{font-size:0.5rem;color:var(--muted);margin-top:3px;font-family:'Space Mono',monospace}
+.bar-row-sm{display:flex;align-items:center;gap:6px;font-size:0.7rem;margin-bottom:3px}
+.bar-lbl-sm{width:20px;text-align:right;color:var(--muted);font-family:'Space Mono',monospace;flex-shrink:0}
+.bar-track{flex:1;background:var(--muted2);border-radius:3px;height:8px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;transition:width .4s}
+.bar-val-sm{width:44px;color:var(--muted);font-size:0.66rem}
+
+/* WIN LOG */
+.win-item{padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;font-size:0.82rem;line-height:1.5;display:flex;gap:10px;align-items:flex-start}
+.win-date{font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--muted);flex-shrink:0;margin-top:2px}
+
+/* SETTINGS */
+.settings-section{margin-bottom:28px}
+.settings-title{font-size:0.62rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted);font-family:'Space Mono',monospace;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);font-weight:700}
+.habit-edit-item{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.del-btn{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:8px 10px;cursor:pointer;font-size:0.8rem;transition:all .15s}
+.del-btn:hover{border-color:var(--red);color:var(--red)}
+.add-btn{display:flex;align-items:center;gap:8px;background:transparent;border:1px dashed var(--border);color:var(--muted);border-radius:8px;padding:10px 14px;cursor:pointer;font-family:'Syne',sans-serif;font-size:0.82rem;width:100%;transition:all .15s;margin-top:4px}
+.add-btn:hover{border-color:var(--accent);color:var(--accent)}
+.save-btn{background:var(--accent);color:#000;border:none;border-radius:8px;padding:11px 20px;font-family:'Syne',sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;transition:all .15s}
+.save-btn:hover{background:#cce800}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--accent);color:#000;padding:10px 18px;border-radius:8px;font-size:0.82rem;font-weight:700;z-index:9999;transform:translateY(80px);transition:transform .3s;font-family:'Space Mono',monospace}
+.toast.show{transform:translateY(0)}
+
+/* LOADING */
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--muted2);border-radius:4px}
+
+@media(max-width:768px){
+  #app.visible{grid-template-columns:1fr}
+  .sidebar{position:fixed;bottom:0;top:auto;height:auto;width:100%;flex-direction:row;z-index:100;border-right:none;border-top:1px solid var(--border)}
+  .logo,.sidebar-footer{display:none}
+  .nav{display:flex;flex-direction:row;padding:8px;gap:4px;overflow-x:auto}
+  .nav-item{flex-direction:column;gap:3px;padding:8px 12px;font-size:0.58rem;white-space:nowrap}
+  .main{padding:20px;padding-bottom:100px}
+  .today-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">VANTAGE<span>.</span></div>
+    <div class="auth-sub">Strategic Objective Tracker</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('login')">Sign In</button>
+      <button class="auth-tab" onclick="switchAuthTab('signup')">Create Account</button>
+    </div>
+    <div class="auth-field">
+      <label class="auth-label">Email</label>
+      <input type="email" class="inp" id="auth-email" placeholder="you@email.com"/>
+    </div>
+    <div class="auth-field">
+      <label class="auth-label">Password</label>
+      <input type="password" class="inp" id="auth-password" placeholder="••••••••"/>
+    </div>
+    <div class="auth-field" id="confirm-field" style="display:none">
+      <label class="auth-label">Confirm Password</label>
+      <input type="password" class="inp" id="auth-confirm" placeholder="••••••••"/>
+    </div>
+    <button class="auth-btn" id="auth-submit-btn" onclick="handleAuth()">Sign In</button>
+    <div class="auth-err" id="auth-err"></div>
+  </div>
+</div>
+
+<div id="app">
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">Personal OS</div>
+      <div class="logo-text">VANTAGE<span>.</span></div>
+    </div>
+    <nav class="nav">
+      <div class="nav-item active" onclick="showPage('today')" id="nav-today"><span class="nav-icon">⚡</span> Today</div>
+      <div class="nav-item" onclick="showPage('month')" id="nav-month"><span class="nav-icon">📊</span> Month</div>
+      <div class="nav-item" onclick="showPage('calendar')" id="nav-calendar"><span class="nav-icon">📅</span> Calendar</div>
+      <div class="nav-item" onclick="showPage('wins')" id="nav-wins"><span class="nav-icon">🏆</span> Wins</div>
+      <div class="nav-item" onclick="showPage('settings')" id="nav-settings"><span class="nav-icon">⚙️</span> Settings</div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-badge"><div class="user-email" id="sidebar-email"></div></div>
+      <div class="month-badge"><strong id="sidebar-month"></strong><span id="sidebar-day"></span></div>
+      <button class="logout-btn" onclick="handleLogout()">Sign out</button>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <div class="page active" id="page-today">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Vantage<span>.</span> Today</div>
+          <div class="page-sub" id="today-date-label"></div>
+        </div>
+        <button class="save-btn" onclick="saveDay()">Save Day →</button>
+      </div>
+
+      <div class="grid g4 section-gap">
+        <div class="card">
+          <div class="card-label">Mood (1-10)</div>
+          <div class="flex-row">
+            <input type="range" min="1" max="10" value="7" class="inp" id="inp-mood" oninput="document.getElementById('mood-val').textContent=this.value" style="flex:1"/>
+            <div class="mood-display" id="mood-val">7</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-label">Weight (lbs)</div>
+          <input type="number" class="inp" id="inp-weight" placeholder="169.0" step="0.1"/>
+        </div>
+        <div class="card">
+          <div class="card-label">Calories</div>
+          <input type="number" class="inp" id="inp-cals" placeholder="2200"/>
+        </div>
+        <div class="card">
+          <div class="card-label">Protein (g)</div>
+          <input type="number" class="inp" id="inp-protein" placeholder="175"/>
+        </div>
+      </div>
+
+      <div class="today-grid section-gap">
+        <div class="card">
+          <div class="card-label">Sleep (hours)</div>
+          <input type="number" class="inp" id="inp-sleep" placeholder="7.5" step="0.5"/>
+        </div>
+        <div class="card">
+          <div class="card-label">Daily Win</div>
+          <input type="text" class="inp" id="inp-win" placeholder="What was today's W?"/>
+        </div>
+      </div>
+
+      <div class="card section-gap">
+        <div class="card-label" style="margin-bottom:14px">Habits - <span id="habit-count-label">0/0</span></div>
+        <div class="habit-list" id="habit-list"></div>
+      </div>
+
+      <div class="card section-gap" id="weekly-goals-card">
+        <div class="goals-header">
+          <div class="card-label">Weekly Goals</div>
+          <span style="font-size:0.65rem;color:var(--muted);font-family:'Space Mono',monospace" id="weekly-goals-week">This week</span>
+        </div>
+        <div id="weekly-goals-list"></div>
+        <div style="font-size:0.75rem;color:var(--muted);padding:8px 0;display:none" id="no-weekly-goals">No weekly goals set. Add them in Settings → Goals.</div>
+      </div>
+
+      <div class="card section-gap">
+        <div class="card-label" style="margin-bottom:12px">Voice / Text Log</div>
+        <button class="voice-btn" id="voice-btn" onclick="toggleVoice()">
+          <span id="voice-icon">🎙️</span>
+          <span id="voice-label">Tap to record - or type below</span>
+        </button>
+        <div class="transcript-box" id="transcript">Voice log will appear here...</div>
+        <textarea class="inp" id="text-log" placeholder="Or type your daily log here..." style="margin-top:8px;min-height:80px;resize:vertical;line-height:1.6"></textarea>
+        <button class="analyze-btn" id="analyze-btn" onclick="getAIFeedback()">✦ Analyze My Day &amp; Get Feedback</button>
+      </div>
+
+      <div class="feedback-box section-gap">
+        <div class="fb-title">AI Feedback</div>
+        <div class="fb-text" id="feedback-text">Log your day and hit analyze. You will get direct feedback on your habits, goals, and trajectory.</div>
+      </div>
+    </div>
+
+    <div class="page" id="page-month">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Vantage<span>.</span> Month</div>
+          <div class="page-sub" id="month-label-header"></div>
+        </div>
+      </div>
+      <div class="grid g4 section-gap" id="month-stats"></div>
+      <div class="grid g2 section-gap">
+        <div class="card">
+          <div class="card-label" style="margin-bottom:12px">Mood This Month</div>
+          <div class="mood-chart" id="month-mood-chart"></div>
+        </div>
+        <div class="card">
+          <div class="card-label" style="margin-bottom:12px">Weight Trend</div>
+          <svg style="width:100%;overflow:visible" viewBox="0 0 300 70" id="weight-svg"></svg>
+        </div>
+      </div>
+      <div class="card section-gap">
+        <div class="card-label" style="margin-bottom:14px">Habit Heatmap</div>
+        <div class="heatmap-wrap" id="month-heatmap"></div>
+      </div>
+      <div class="grid g2 section-gap">
+        <div class="card"><div class="card-label" style="margin-bottom:12px">Calories by Day</div><div id="cal-bars"></div></div>
+        <div class="card"><div class="card-label" style="margin-bottom:12px">Protein by Day</div><div id="prot-bars"></div></div>
+      </div>
+      <div class="card section-gap">
+        <div class="goals-header">
+          <div class="card-label">Monthly Goals Progress</div>
+        </div>
+        <div id="monthly-goals-list"></div>
+        <div style="font-size:0.75rem;color:var(--muted);padding:8px 0;display:none" id="no-monthly-goals">No monthly goals set. Add them in Settings → Goals.</div>
+      </div>
+    </div>
+
+    <div class="page" id="page-calendar">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Vantage<span>.</span> Calendar</div>
+          <div class="page-sub">Tap any day to view or edit</div>
+        </div>
+      </div>
+      <div class="card section-gap">
+        <div class="cal-nav">
+          <button class="cal-nav-btn" onclick="calPrev()">← Prev</button>
+          <div class="cal-month-label" id="cal-month-label"></div>
+          <button class="cal-nav-btn" onclick="calNext()">Next →</button>
+        </div>
+        <div class="cal-grid" id="cal-grid"></div>
+      </div>
+      <div id="cal-day-editor" style="display:none">
+        <div class="page-header" style="margin-bottom:16px">
+          <div>
+            <div class="page-title" style="font-size:1.3rem" id="cal-editing-label">Editing -</div>
+          </div>
+          <button class="save-btn" onclick="saveCalDay()">Save →</button>
+        </div>
+        <div class="grid g4 section-gap">
+          <div class="card">
+            <div class="card-label">Mood</div>
+            <div class="flex-row">
+              <input type="range" min="1" max="10" value="7" class="inp" id="cal-mood" oninput="document.getElementById('cal-mood-val').textContent=this.value" style="flex:1"/>
+              <div class="mood-display" id="cal-mood-val">7</div>
+            </div>
+          </div>
+          <div class="card"><div class="card-label">Weight</div><input type="number" class="inp" id="cal-weight" step="0.1"/></div>
+          <div class="card"><div class="card-label">Calories</div><input type="number" class="inp" id="cal-cals"/></div>
+          <div class="card"><div class="card-label">Protein (g)</div><input type="number" class="inp" id="cal-protein"/></div>
+        </div>
+        <div class="today-grid section-gap">
+          <div class="card"><div class="card-label">Sleep (hrs)</div><input type="number" class="inp" id="cal-sleep" step="0.5"/></div>
+          <div class="card"><div class="card-label">Daily Win</div><input type="text" class="inp" id="cal-win"/></div>
+        </div>
+        <div class="card section-gap">
+          <div class="card-label" style="margin-bottom:14px">Habits</div>
+          <div class="habit-list" id="cal-habit-list"></div>
+        </div>
+        <div class="card section-gap">
+          <div class="card-label" style="margin-bottom:8px">Notes / Log</div>
+          <textarea class="inp" id="cal-log" style="min-height:80px;resize:vertical;line-height:1.6"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="page" id="page-wins">
+      <div class="page-header">
+        <div><div class="page-title">Vantage<span>.</span> Wins</div><div class="page-sub">Every W this month</div></div>
+      </div>
+      <div id="wins-list"></div>
+    </div>
+
+    <div class="page" id="page-settings">
+      <div class="page-header">
+        <div><div class="page-title">Vantage<span>.</span> Settings</div><div class="page-sub">Customize your tracker</div></div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-title">Current Month</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <select class="inp" id="set-month" style="width:auto">
+            <option value="1">January</option><option value="2">February</option><option value="3">March</option>
+            <option value="4">April</option><option value="5">May</option><option value="6">June</option>
+            <option value="7">July</option><option value="8">August</option><option value="9">September</option>
+            <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+          </select>
+          <input type="number" class="inp" id="set-year" value="2026" style="width:100px"/>
+          <button class="save-btn" onclick="saveMonthSettings()">Update</button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-title">Habits</div>
+        <div id="habits-editor"></div>
+        <button class="add-btn" onclick="addHabitField()">+ Add habit</button>
+        <div style="margin-top:12px"><button class="save-btn" onclick="saveHabits()">Save Habits</button></div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-title">Goals - Weekly &amp; Monthly</div>
+        <p style="font-size:0.75rem;color:var(--muted);margin-bottom:16px;line-height:1.6">Add goals below. Weekly goals show on the Today page, monthly goals show on the Month page. Each goal can have an optional deadline - the app escalates urgency as the date gets closer.</p>
+        <div id="goals-editor"></div>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+          <button class="add-btn" style="flex:1" onclick="addGoalField('weekly')">+ Add weekly goal</button>
+          <button class="add-btn" style="flex:1" onclick="addGoalField('monthly')">+ Add monthly goal</button>
+        </div>
+        <div style="margin-top:12px"><button class="save-btn" onclick="saveGoals()">Save Goals</button></div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-title">Groq API Key (free AI feedback)</div>
+        <p style="font-size:0.73rem;color:var(--muted);margin-bottom:10px;line-height:1.6">Get a free key at <strong style="color:var(--text)">console.groq.com</strong> → API Keys → Create key.</p>
+        <input type="password" class="inp" id="set-groq-key" placeholder="gsk_..."/>
+        <div style="margin-top:10px"><button class="save-btn" onclick="saveGroqKey()">Save Key</button></div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-title">Danger Zone</div>
+        <button class="del-btn" style="padding:10px 16px;font-size:0.8rem" onclick="clearMonthData()">🗑 Clear all data for this month</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── SUPABASE ─────────────────────────────────────────────────────────────────
+const SUPA_URL = 'https://xvpkrehegoblwnluzrra.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2cGtyZWhlZ29ibHdubHV6cnJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzMzA1NTQsImV4cCI6MjA4NjkwNjU1NH0.POGB7kXbysC0id7wX3Gd5ovhVFCFnPY5mHkccvd-8VY';
+const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+const DEFAULT_HABITS = [
+  'Set daily goals','Caffeine cut-off','No phone first hour',
+  'Nutrient dense breakfast/lunch','Train / Recover','1 gallon of water',
+  'Creatine','Business growth action','Read 10 pages',
+  'Under 5.5hrs screentime','Wear retainer','No impulse spending',
+  '20 min personal deep work','Completed top-priority task','Meaningful connection'
+];
+
+let S = {
+  month: new Date().getMonth()+1,
+  year: new Date().getFullYear(),
+  habits: [...DEFAULT_HABITS],
+  goals: [], // [{id, name, type:'weekly'|'monthly', deadline:'', progress:0}]
+  groqKey: '',
+  days: {}
+};
+let currentUser = null;
+let authMode = 'login';
+let calViewMonth = new Date().getMonth()+1;
+let calViewYear = new Date().getFullYear();
+let calSelectedDate = null;
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+const MONTHS = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
+function todayStr(){ return new Date().toISOString().split('T')[0]; }
+function dateKey(d,m,y){ return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+function daysInMonth(m,y){ return new Date(y,m,0).getDate(); }
+function getDay(dk){ return S.days[dk]||{habits:{},mood:7,weight:null,cals:null,protein:null,sleep:null,win:'',log:''}; }
+function showToast(msg,dur=2200){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),dur); }
+
+// ─── GOAL URGENCY ─────────────────────────────────────────────────────────────
+function getUrgency(deadline){
+  if(!deadline) return {level:0,label:'',days:null};
+  const now = new Date(); now.setHours(0,0,0,0);
+  const due = new Date(deadline+'T00:00:00');
+  const diff = Math.round((due-now)/(1000*60*60*24));
+  if(diff<0) return {level:4,label:'Overdue',days:diff,cls:'overdue'};
+  if(diff===0) return {level:3,label:'Due today',days:0,cls:'critical'};
+  if(diff<=1) return {level:3,label:`${diff}d left`,days:diff,cls:'critical'};
+  if(diff<=3) return {level:2,label:`${diff}d left`,days:diff,cls:'urgent'};
+  if(diff<=7) return {level:1,label:`${diff}d left`,days:diff,cls:'soon'};
+  return {level:0,label:`${diff}d left`,days:diff,cls:'ok'};
+}
+
+function urgencyItemClass(level){ return ['','urgent-1','urgent-2','urgent-3','overdue'][level]||''; }
+function deadlineBadgeClass(cls){ return {ok:'deadline-ok',soon:'deadline-soon',urgent:'deadline-urgent',critical:'deadline-critical',overdue:'deadline-overdue'}[cls]||'deadline-ok'; }
+function countdownClass(cls){ return {ok:'',soon:'urgent',urgent:'urgent',critical:'critical',overdue:'overdue'}[cls]||''; }
+
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
+function switchAuthTab(mode){
+  authMode=mode;
+  document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('active',(i===0&&mode==='login')||(i===1&&mode==='signup')));
+  document.getElementById('confirm-field').style.display=mode==='signup'?'block':'none';
+  document.getElementById('auth-submit-btn').textContent=mode==='login'?'Sign In':'Create Account';
+  document.getElementById('auth-err').textContent='';
+}
+
+async function handleAuth(){
+  const email=document.getElementById('auth-email').value.trim();
+  const pw=document.getElementById('auth-password').value;
+  const confirm=document.getElementById('auth-confirm').value;
+  const btn=document.getElementById('auth-submit-btn');
+  const err=document.getElementById('auth-err');
+  err.textContent='';
+  if(!email||!pw){err.textContent='Email and password required.';return;}
+  if(authMode==='signup'&&pw!==confirm){err.textContent='Passwords do not match.';return;}
+  if(authMode==='signup'&&pw.length<6){err.textContent='Password must be at least 6 characters.';return;}
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Working...';
+  try{
+    let res;
+    if(authMode==='login'){
+      res=await sb.auth.signInWithPassword({email,password:pw});
+    } else {
+      res=await sb.auth.signUp({email,password:pw});
+      if(res.data?.user&&!res.error){
+        err.style.color='var(--green)';
+        err.textContent='Account created! Check your email to confirm, then sign in.';
+        switchAuthTab('login'); btn.disabled=false; btn.textContent='Sign In'; return;
+      }
+    }
+    if(res.error) throw res.error;
+    currentUser=res.data.user;
+    await initApp();
+  } catch(e){
+    err.style.color='var(--red)';
+    err.textContent=e.message||'Something went wrong.';
+  }
+  btn.disabled=false; btn.textContent=authMode==='login'?'Sign In':'Create Account';
+}
+
+async function handleLogout(){
+  await sb.auth.signOut();
+  currentUser=null; S.days={};
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('auth-screen').style.display='flex';
+  document.getElementById('auth-email').value='';
+  document.getElementById('auth-password').value='';
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+async function initApp(){
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('app').classList.add('visible');
+  document.getElementById('sidebar-email').textContent=currentUser.email;
+  const gk=localStorage.getItem('groq_key')||'';
+  S.groqKey=gk;
+  await loadUserSettings();
+  await loadMonthLogs();
+  updateSidebar();
+  initToday(todayStr());
+  calViewMonth=S.month; calViewYear=S.year;
+}
+
+// ─── SUPABASE DATA ────────────────────────────────────────────────────────────
+async function loadUserSettings(){
+  const {data}=await sb.from('user_settings').select('*').eq('user_id',currentUser.id).single();
+  if(data){
+    if(data.habits&&data.habits.length) S.habits=data.habits;
+    if(data.goals){
+      try {
+        S.goals = typeof data.goals === 'string' ? JSON.parse(data.goals) : data.goals;
+        if(!Array.isArray(S.goals)) S.goals = [];
+      } catch(e){
+        console.error('Error parsing goals:',e);
+        S.goals = [];
+      }
+    } else {
+      S.goals=[];
+    }
+  }
+}
+
+async function saveUserSettings(){
+  const goalsData = Array.isArray(S.goals) ? S.goals : [];
+  await sb.from('user_settings').upsert({
+    user_id:currentUser.id,
+    habits:S.habits,
+    goals:goalsData,
+    updated_at:new Date().toISOString()
+  },{onConflict:'user_id'});
+}
+
+async function loadMonthLogs(){
+  const from=dateKey(1,S.month,S.year);
+  const to=dateKey(daysInMonth(S.month,S.year),S.month,S.year);
+  const {data}=await sb.from('logs').select('*').eq('user_id',currentUser.id).gte('date',from).lte('date',to);
+  S.days={};
+  if(data) data.forEach(row=>{
+    S.days[row.date]={
+      habits:row.habits||{},mood:row.mood||7,weight:row.weight,
+      cals:row.calories,protein:row.protein,sleep:row.sleep,
+      win:row.win||'',log:row.log_text||''
+    };
+  });
+}
+
+async function saveDayToDB(dk, dayData){
+  const [y,m,d]=dk.split('-').map(Number);
+  await sb.from('logs').upsert({
+    user_id:currentUser.id,date:dk,
+    mood:dayData.mood,weight:dayData.weight,
+    calories:dayData.cals,protein:dayData.protein,
+    sleep:dayData.sleep,win:dayData.win,
+    log_text:dayData.log,habits:dayData.habits,
+    updated_at:new Date().toISOString()
+  },{onConflict:'user_id,date'});
+}
+
+// ─── NAV ──────────────────────────────────────────────────────────────────────
+function showPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.getElementById('nav-'+name).classList.add('active');
+  if(name==='month'){loadMonthLogs().then(renderMonthPage);}
+  if(name==='calendar'){renderCalendar();}
+  if(name==='wins'){loadMonthLogs().then(renderWinsPage);}
+  if(name==='settings'){renderSettings();}
+}
+
+// ─── TODAY ────────────────────────────────────────────────────────────────────
+function initToday(dk){
+  const d=getDay(dk);
+  document.getElementById('inp-mood').value=d.mood||7;
+  document.getElementById('mood-val').textContent=d.mood||7;
+  document.getElementById('inp-weight').value=d.weight||'';
+  document.getElementById('inp-cals').value=d.cals||'';
+  document.getElementById('inp-protein').value=d.protein||'';
+  document.getElementById('inp-sleep').value=d.sleep||'';
+  document.getElementById('inp-win').value=d.win||'';
+  document.getElementById('text-log').value=d.log||'';
+  const now=new Date();
+  document.getElementById('today-date-label').textContent=now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  renderHabitList(dk);
+  renderWeeklyGoals();
+}
+
+function renderHabitList(dk){
+  const d=getDay(dk);
+  const list=document.getElementById('habit-list');
+  list.innerHTML='';
+  let done=0;
+  S.habits.forEach(h=>{
+    const checked=d.habits[h]||false;
+    if(checked) done++;
+    const el=document.createElement('div');
+    el.className='habit-item'+(checked?' done':'');
+    el.onclick=()=>toggleHabit(dk,h,'habit-list',initToday.bind(null,dk));
+    el.innerHTML=`<div class="habit-left"><div class="habit-cb">${checked?'✓':''}</div><div class="habit-name">${h}</div></div><div style="font-size:0.65rem;color:var(--muted);font-family:'Space Mono',monospace">${checked?'✓':'—'}</div>`;
+    list.appendChild(el);
+  });
+  document.getElementById('habit-count-label').textContent=`${done}/${S.habits.length}`;
+}
+
+async function toggleHabit(dk,h,listId,refresh){
+  if(!S.days[dk]) S.days[dk]=getDay(dk);
+  S.days[dk].habits[h]=!S.days[dk].habits[h];
+  await saveDayToDB(dk,S.days[dk]);
+  if(refresh) refresh();
+  else renderHabitList(dk);
+}
+
+async function saveDay(){
+  const dk=todayStr();
+  if(!S.days[dk]) S.days[dk]=getDay(dk);
+  const d=S.days[dk];
+  d.mood=parseInt(document.getElementById('inp-mood').value)||7;
+  d.weight=parseFloat(document.getElementById('inp-weight').value)||null;
+  d.cals=parseInt(document.getElementById('inp-cals').value)||null;
+  d.protein=parseInt(document.getElementById('inp-protein').value)||null;
+  d.sleep=parseFloat(document.getElementById('inp-sleep').value)||null;
+  d.win=document.getElementById('inp-win').value;
+  d.log=document.getElementById('text-log').value;
+  await saveDayToDB(dk,d);
+  showToast('Day saved ✓');
+}
+
+// ─── WEEKLY GOALS ─────────────────────────────────────────────────────────────
+function renderWeeklyGoals(){
+  const now=new Date();
+  const dayOfWeek=now.getDay();
+  const weekStart=new Date(now); weekStart.setDate(now.getDate()-dayOfWeek);
+  const weekEnd=new Date(weekStart); weekEnd.setDate(weekStart.getDate()+6);
+  const fmt=d=>d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  document.getElementById('weekly-goals-week').textContent=`${fmt(weekStart)} - ${fmt(weekEnd)}`;
+
+  const weekly=S.goals.filter(g=>g.type==='weekly');
+  const list=document.getElementById('weekly-goals-list');
+  const empty=document.getElementById('no-weekly-goals');
+  list.innerHTML='';
+
+  if(!weekly.length){ empty.style.display='block'; return; }
+  empty.style.display='none';
+  weekly.forEach(g=>list.appendChild(buildGoalItem(g,true)));
+}
+
+function renderMonthlyGoals(){
+  const monthly=S.goals.filter(g=>g.type==='monthly');
+  const list=document.getElementById('monthly-goals-list');
+  const empty=document.getElementById('no-monthly-goals');
+  list.innerHTML='';
+  if(!monthly.length){ empty.style.display='block'; return; }
+  empty.style.display='none';
+  monthly.forEach(g=>list.appendChild(buildGoalItem(g,true)));
+}
+
+function buildGoalItem(g, interactive){
+  const urg=getUrgency(g.deadline);
+  const el=document.createElement('div');
+  el.className='goal-item '+urgencyItemClass(urg.level);
+  el.dataset.goalId=g.id;
+
+  let deadlineBadge='';
+  if(g.deadline){
+    deadlineBadge=`<span class="goal-deadline ${deadlineBadgeClass(urg.cls)}">${urg.label}</span>`;
+  }
+
+  let countdown='';
+  if(g.deadline&&urg.days!==null&&urg.days<=7){
+    countdown=`<div class="goal-countdown ${countdownClass(urg.cls)}">${urg.level===4?'⚠ Overdue by '+Math.abs(urg.days)+' day(s)':urg.label+' - '+new Date(g.deadline+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>`;
+  }
+
+  el.innerHTML=`
+    <div class="goal-top">
+      <div class="goal-name">${g.name}</div>
+      ${deadlineBadge}
+    </div>
+    <div class="goal-progress-row">
+      <input type="range" min="0" max="10" value="${g.progress||0}" class="goal-slider" ${interactive?'':'disabled'}
+        oninput="updateGoalProgress('${g.id}',this.value,this.closest('.goal-item').querySelector('.goal-score'))"
+        onchange="persistGoalProgress('${g.id}',this.value)"/>
+      <div class="goal-score">${g.progress||0}/10</div>
+    </div>
+    ${countdown}
+  `;
+  return el;
+}
+
+function updateGoalProgress(id,val,scoreEl){
+  if(scoreEl) scoreEl.textContent=val+'/10';
+  const g=S.goals.find(x=>x.id===id);
+  if(g) g.progress=parseInt(val);
+}
+
+async function persistGoalProgress(id,val){
+  const g=S.goals.find(x=>x.id===id);
+  if(g){ g.progress=parseInt(val); await saveUserSettings(); }
+}
+
+// ─── VOICE ────────────────────────────────────────────────────────────────────
+let recognition=null, isRecording=false;
+function toggleVoice(){
+  if(!('webkitSpeechRecognition' in window||'SpeechRecognition' in window)){ showToast('Voice not supported in this browser'); return; }
+  if(isRecording){ recognition&&recognition.stop(); return; }
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  recognition=new SR(); recognition.continuous=true; recognition.interimResults=true; recognition.lang='en-US';
+  recognition.onstart=()=>{ isRecording=true; document.getElementById('voice-btn').classList.add('recording'); document.getElementById('voice-icon').textContent='🔴'; document.getElementById('voice-label').textContent='Recording... tap to stop'; };
+  recognition.onresult=e=>{
+    let final='',interim='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal) final+=e.results[i][0].transcript;
+      else interim+=e.results[i][0].transcript;
+    }
+    const box=document.getElementById('transcript');
+    box.textContent=(final||interim)||'Listening...';
+    box.classList.toggle('has-text',!!(final||interim));
+    if(final){ const ta=document.getElementById('text-log'); ta.value=(ta.value?ta.value+' ':'')+final; }
+  };
+  recognition.onend=()=>{ isRecording=false; document.getElementById('voice-btn').classList.remove('recording'); document.getElementById('voice-icon').textContent='🎙️'; document.getElementById('voice-label').textContent='Tap to record - or type below'; };
+  recognition.start();
+}
+
+// ─── AI FEEDBACK ──────────────────────────────────────────────────────────────
+async function getAIFeedback(){
+  const btn=document.getElementById('analyze-btn');
+  const box=document.getElementById('feedback-text');
+  const log=document.getElementById('text-log').value||document.getElementById('transcript').textContent;
+  const mood=document.getElementById('inp-mood').value;
+  const weight=document.getElementById('inp-weight').value;
+  const cals=document.getElementById('inp-cals').value;
+  const prot=document.getElementById('inp-protein').value;
+  const sleep=document.getElementById('inp-sleep').value;
+  const dk=todayStr(); const d=getDay(dk);
+  const doneHabits=S.habits.filter(h=>d.habits[h]);
+  const missedHabits=S.habits.filter(h=>!d.habits[h]);
+  const weeklyGoals=S.goals.filter(g=>g.type==='weekly').map(g=>`${g.name} (${g.progress||0}/10)`).join(', ')||'none';
+  const monthlyGoals=S.goals.filter(g=>g.type==='monthly').map(g=>`${g.name} (${g.progress||0}/10)`).join(', ')||'none';
+  const urgentGoals=S.goals.filter(g=>{ const u=getUrgency(g.deadline); return u.level>=2; }).map(g=>{ const u=getUrgency(g.deadline); return `${g.name} (${u.label})`; }).join(', ')||'none';
+
+  const prompt=`You are a no-BS personal performance coach. Be direct, specific, honest. Max 160 words. No generic fluff.
+
+Today:
+- Mood: ${mood}/10 | Sleep: ${sleep||'?'}h | Cals: ${cals||'?'} | Protein: ${prot||'?'}g | Weight: ${weight||'?'} lbs
+- Habits done (${doneHabits.length}/${S.habits.length}): ${doneHabits.join(', ')||'none'}
+- Missed: ${missedHabits.join(', ')||'none'}
+- Weekly goals: ${weeklyGoals}
+- Monthly goals: ${monthlyGoals}
+- Urgent/overdue goals: ${urgentGoals}
+- Log: "${log||'nothing'}"
+
+Give: 1) Quick read on today 2) One thing to fix tomorrow 3) Call out any urgent goals they should address. Be real.`;
+
+  if(!S.groqKey){ box.innerHTML='<em style="color:var(--yellow)">⚠ Add your free Groq API key in Settings to enable AI feedback.</em>'; return; }
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Analyzing...';
+  box.textContent='Thinking...';
+  try{
+    const res=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.groqKey},
+      body:JSON.stringify({model:'llama3-8b-8192',messages:[{role:'user',content:prompt}],max_tokens:250,temperature:0.7})
+    });
+    const data=await res.json();
+    if(data.error) throw new Error(data.error.message);
+    box.textContent=data.choices[0].message.content;
+  } catch(e){ box.innerHTML=`<em style="color:var(--red)">Error: ${e.message}</em>`; }
+  btn.disabled=false; btn.innerHTML='✦ Analyze My Day &amp; Get Feedback';
+}
+
+// ─── MONTH PAGE ───────────────────────────────────────────────────────────────
+function renderMonthPage(){
+  document.getElementById('month-label-header').textContent=MONTHS[S.month]+' '+S.year;
+  const dim=daysInMonth(S.month,S.year);
+  const moods=[],weights=[],cals=[],prots=[],completions=[];
+  for(let d=1;d<=dim;d++){
+    const dk=dateKey(d,S.month,S.year);
+    const day=S.days[dk]; if(!day) continue;
+    if(day.mood) moods.push(day.mood);
+    if(day.weight) weights.push({d,v:day.weight});
+    if(day.cals) cals.push({d,v:day.cals});
+    if(day.protein) prots.push({d,v:day.protein});
+    const done=S.habits.filter(h=>day.habits&&day.habits[h]).length;
+    completions.push(S.habits.length?Math.round((done/S.habits.length)*100):0);
+  }
+  const avgMood=moods.length?(moods.reduce((a,b)=>a+b,0)/moods.length).toFixed(1):'-';
+  const avgComp=completions.length?Math.round(completions.reduce((a,b)=>a+b,0)/completions.length):0;
+  const firstW=weights[0]?.v,lastW=weights[weights.length-1]?.v;
+  const wChange=firstW&&lastW?(lastW-firstW).toFixed(1):null;
+  const logged=Object.keys(S.days).filter(k=>k.startsWith(`${S.year}-${String(S.month).padStart(2,'0')}`)).length;
+
+  document.getElementById('month-stats').innerHTML=`
+    <div class="card"><div class="card-label">Avg Mood</div><div class="stat-big" style="color:var(--pink)">${avgMood}<span style="font-size:1rem;color:var(--muted)">/10</span></div><span class="tag tag-a">${MONTHS[S.month]}</span></div>
+    <div class="card"><div class="card-label">Avg Completion</div><div class="stat-big" style="color:var(--accent)">${avgComp}%</div><span class="tag ${avgComp>=60?'tag-g':avgComp>=40?'tag-y':'tag-r'}">${avgComp>=60?'On track':avgComp>=40?'Getting there':'Needs focus'}</span></div>
+    <div class="card"><div class="card-label">Weight Change</div><div class="stat-big" style="color:${wChange&&wChange<0?'var(--green)':'var(--yellow)'}">${wChange!==null?(wChange>0?'+':'')+wChange+' lbs':'-'}</div><span class="tag tag-a">${firstW||'?'} → ${lastW||'?'}</span></div>
+    <div class="card"><div class="card-label">Days Logged</div><div class="stat-big" style="color:var(--accent2)">${logged}</div><div class="stat-sub">of ${dim} days</div></div>
+  `;
+
+  const mc=document.getElementById('month-mood-chart'); mc.innerHTML='';
+  const moodColors=['#ef4444','#ef4444','#f59e0b','#f59e0b','#f59e0b','#22c55e','#22c55e','#22c55e','#22c55e','#6c63ff'];
+  for(let d=1;d<=dim;d++){
+    const dk=dateKey(d,S.month,S.year); const m=S.days[dk]?.mood||null;
+    const wrap=document.createElement('div'); wrap.className='mb-wrap';
+    const bar=document.createElement('div'); bar.className='mb';
+    bar.style.height=m?`${(m/10)*100}%`:'3px';
+    bar.style.background=m?(moodColors[m-1]||'#6c63ff'):'var(--border)';
+    bar.title=`Day ${d}: ${m||'-'}`;
+    const lbl=document.createElement('div'); lbl.className='mb-lbl'; lbl.textContent=d%7===1?d:'';
+    wrap.appendChild(bar); wrap.appendChild(lbl); mc.appendChild(wrap);
+  }
+
+  const svg=document.getElementById('weight-svg');
+  if(weights.length>=2){
+    const W=300,H=70,P=6;
+    const vals=weights.map(w=>w.v);
+    const minV=Math.min(...vals)-0.5,maxV=Math.max(...vals)+0.5;
+    const pts=weights.map(w=>{ const x=P+(w.d-1)/(dim-1)*(W-P*2); const y=P+(1-(w.v-minV)/(maxV-minV))*(H-P*2); return `${x},${y}`; }).join(' ');
+    svg.innerHTML=`<defs><linearGradient id="wg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#38bdf8" stop-opacity="0.2"/><stop offset="100%" stop-color="#38bdf8" stop-opacity="0"/></linearGradient></defs><polyline points="${pts}" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linejoin="round"/>`;
+  } else { svg.innerHTML=`<text x="10" y="35" fill="#555" font-size="11" font-family="Space Mono">No weight data yet</text>`; }
+
+  const hm=document.getElementById('month-heatmap'); hm.innerHTML='';
+  S.habits.forEach(h=>{
+    const row=document.createElement('div'); row.className='heatmap-row';
+    const lbl=document.createElement('div'); lbl.className='hm-label'; lbl.textContent=h; lbl.title=h;
+    const dots=document.createElement('div'); dots.className='hm-dots';
+    let cnt=0;
+    for(let d=1;d<=dim;d++){
+      const dk=dateKey(d,S.month,S.year); const checked=S.days[dk]?.habits?.[h]||false;
+      if(checked) cnt++;
+      const dot=document.createElement('div'); dot.className='hm-dot';
+      dot.style.background=checked?'var(--green)':'var(--border)';
+      dot.title=`${h} - Day ${d}: ${checked?'✓':'✗'}`;
+      dots.appendChild(dot);
+    }
+    const pct=document.createElement('div'); pct.className='hm-pct';
+    const p=Math.round((cnt/dim)*100);
+    pct.style.color=p>=70?'var(--green)':p>=40?'var(--yellow)':'var(--red)';
+    pct.textContent=p+'%';
+    row.appendChild(lbl); row.appendChild(dots); row.appendChild(pct); hm.appendChild(row);
+  });
+
+  renderBarChart('cal-bars',cals,2800,'var(--yellow)','');
+  renderBarChart('prot-bars',prots,300,'var(--pink)','g');
+  renderMonthlyGoals();
+}
+
+function renderBarChart(id,data,maxDef,color,unit){
+  const cont=document.getElementById(id); cont.innerHTML='';
+  const max=data.length?Math.max(...data.map(d=>d.v),maxDef):maxDef;
+  if(!data.length){ cont.innerHTML='<div style="font-size:0.75rem;color:var(--muted);padding:8px">No data yet</div>'; return; }
+  data.forEach(entry=>{
+    const row=document.createElement('div'); row.className='bar-row-sm';
+    const lbl=document.createElement('div'); lbl.className='bar-lbl-sm'; lbl.textContent=entry.d;
+    const track=document.createElement('div'); track.className='bar-track';
+    const fill=document.createElement('div'); fill.className='bar-fill';
+    fill.style.width=`${(entry.v/max)*100}%`; fill.style.background=color; track.appendChild(fill);
+    const val=document.createElement('div'); val.className='bar-val-sm';
+    val.textContent=unit?entry.v+unit:entry.v.toLocaleString();
+    row.appendChild(lbl); row.appendChild(track); row.appendChild(val); cont.appendChild(row);
+  });
+}
+
+// ─── CALENDAR ─────────────────────────────────────────────────────────────────
+function renderCalendar(){
+  document.getElementById('cal-month-label').textContent=MONTHS[calViewMonth]+' '+calViewYear;
+  const dim=daysInMonth(calViewMonth,calViewYear);
+  const firstDay=new Date(calViewYear,calViewMonth-1,1).getDay();
+  const grid=document.getElementById('cal-grid'); grid.innerHTML='';
+  ['Su','Mo','Tu','We','Th','Fr','Sa'].forEach(d=>{ const h=document.createElement('div'); h.className='cal-header'; h.textContent=d; grid.appendChild(h); });
+  for(let i=0;i<firstDay;i++){ const e=document.createElement('div'); e.className='cal-day empty'; grid.appendChild(e); }
+  const todayFull=todayStr();
+  for(let d=1;d<=dim;d++){
+    const dk=dateKey(d,calViewMonth,calViewYear);
+    const el=document.createElement('div');
+    el.className='cal-day'+(dk===todayFull?' today':'')+(S.days[dk]?' has-log':'')+(dk===calSelectedDate?' selected':'');
+    el.textContent=d;
+    el.onclick=()=>openCalDay(dk,d);
+    grid.appendChild(el);
+  }
+}
+
+function calPrev(){ calViewMonth--; if(calViewMonth<1){calViewMonth=12;calViewYear--;} renderCalendar(); }
+function calNext(){ calViewMonth++; if(calViewMonth>12){calViewMonth=1;calViewYear++;} renderCalendar(); }
+
+async function openCalDay(dk,d){
+  calSelectedDate=dk;
+  renderCalendar();
+  if(!S.days[dk]){
+    const {data}=await sb.from('logs').select('*').eq('user_id',currentUser.id).eq('date',dk).single();
+    if(data) S.days[dk]={habits:data.habits||{},mood:data.mood||7,weight:data.weight,cals:data.calories,protein:data.protein,sleep:data.sleep,win:data.win||'',log:data.log_text||''};
+  }
+  const day=getDay(dk);
+  const editor=document.getElementById('cal-day-editor');
+  editor.style.display='block';
+  document.getElementById('cal-editing-label').textContent=`Editing - ${MONTHS[calViewMonth]} ${d}, ${calViewYear}`;
+  document.getElementById('cal-mood').value=day.mood||7;
+  document.getElementById('cal-mood-val').textContent=day.mood||7;
+  document.getElementById('cal-weight').value=day.weight||'';
+  document.getElementById('cal-cals').value=day.cals||'';
+  document.getElementById('cal-protein').value=day.protein||'';
+  document.getElementById('cal-sleep').value=day.sleep||'';
+  document.getElementById('cal-win').value=day.win||'';
+  document.getElementById('cal-log').value=day.log||'';
+  renderCalHabitList(dk);
+  editor.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function renderCalHabitList(dk){
+  const d=getDay(dk);
+  const list=document.getElementById('cal-habit-list'); list.innerHTML='';
+  S.habits.forEach(h=>{
+    const checked=d.habits[h]||false;
+    const el=document.createElement('div'); el.className='habit-item'+(checked?' done':'');
+    el.onclick=()=>toggleCalHabit(dk,h);
+    el.innerHTML=`<div class="habit-left"><div class="habit-cb">${checked?'✓':''}</div><div class="habit-name">${h}</div></div>`;
+    list.appendChild(el);
+  });
+}
+
+async function toggleCalHabit(dk,h){
+  if(!S.days[dk]) S.days[dk]=getDay(dk);
+  S.days[dk].habits[h]=!S.days[dk].habits[h];
+  renderCalHabitList(dk);
+}
+
+async function saveCalDay(){
+  if(!calSelectedDate) return;
+  const dk=calSelectedDate;
+  if(!S.days[dk]) S.days[dk]=getDay(dk);
+  const d=S.days[dk];
+  d.mood=parseInt(document.getElementById('cal-mood').value)||7;
+  d.weight=parseFloat(document.getElementById('cal-weight').value)||null;
+  d.cals=parseInt(document.getElementById('cal-cals').value)||null;
+  d.protein=parseInt(document.getElementById('cal-protein').value)||null;
+  d.sleep=parseFloat(document.getElementById('cal-sleep').value)||null;
+  d.win=document.getElementById('cal-win').value;
+  d.log=document.getElementById('cal-log').value;
+  await saveDayToDB(dk,d);
+  renderCalendar();
+  showToast('Day updated ✓');
+}
+
+// ─── WINS ─────────────────────────────────────────────────────────────────────
+function renderWinsPage(){
+  const list=document.getElementById('wins-list'); list.innerHTML='';
+  const dim=daysInMonth(S.month,S.year); let found=false;
+  for(let d=dim;d>=1;d--){
+    const dk=dateKey(d,S.month,S.year); const day=S.days[dk];
+    if(!day?.win) continue; found=true;
+    const item=document.createElement('div'); item.className='win-item';
+    item.innerHTML=`<div class="win-date">${MONTHS[S.month].slice(0,3)} ${d}</div><div>🏆 ${day.win}</div>`;
+    list.appendChild(item);
+  }
+  if(!found) list.innerHTML='<div style="color:var(--muted);font-size:0.85rem;padding:20px 0">No wins logged yet. Save your daily W on the Today page!</div>';
+}
+
+// ─── SETTINGS ─────────────────────────────────────────────────────────────────
+function renderSettings(){
+  document.getElementById('set-month').value=S.month;
+  document.getElementById('set-year').value=S.year;
+  document.getElementById('set-groq-key').value=S.groqKey||'';
+  renderHabitsEditor();
+  renderGoalsEditor();
+}
+
+function renderHabitsEditor(){
+  const ed=document.getElementById('habits-editor'); ed.innerHTML='';
+  S.habits.forEach((h,i)=>{
+    const row=document.createElement('div'); row.className='habit-edit-item';
+    row.innerHTML=`<input type="text" class="inp" value="${h}" id="hf-${i}"/><button class="del-btn" onclick="removeHabit(${i})">✕</button>`;
+    ed.appendChild(row);
+  });
+}
+
+function addHabitField(){ S.habits.push('New habit'); renderHabitsEditor(); }
+function removeHabit(i){ S.habits.splice(i,1); renderHabitsEditor(); }
+async function saveHabits(){
+  S.habits=Array.from(document.querySelectorAll('[id^="hf-"]')).map(el=>el.value.trim()).filter(Boolean);
+  await saveUserSettings(); showToast('Habits saved ✓'); renderHabitsEditor();
+}
+
+// GOALS EDITOR
+function renderGoalsEditor(){
+  const ed=document.getElementById('goals-editor'); ed.innerHTML='';
+  if(!S.goals.length){ ed.innerHTML='<div style="font-size:0.75rem;color:var(--muted);padding:8px 0">No goals yet. Add weekly or monthly goals below.</div>'; return; }
+  S.goals.forEach((g,i)=>{
+    const item=document.createElement('div'); item.className='goal-edit-item';
+    item.innerHTML=`
+      <div class="goal-edit-row">
+        <input type="text" class="inp" value="${g.name}" id="gname-${i}" placeholder="Goal name" style="flex:1"/>
+        <span class="goal-type-badge ${g.type==='weekly'?'type-weekly':'type-monthly'}">${g.type}</span>
+        <button class="del-btn" onclick="removeGoal(${i})">✕</button>
+      </div>
+      <div class="goal-edit-row" style="align-items:center;gap:12px">
+        <label style="font-size:0.62rem;color:var(--muted);font-family:'Space Mono',monospace;white-space:nowrap">Due date (optional)</label>
+        <input type="date" class="inp" value="${g.deadline||''}" id="gdate-${i}" style="flex:1;color-scheme:dark"/>
+      </div>
+    `;
+    ed.appendChild(item);
+  });
+}
+
+function addGoalField(type){
+  S.goals.push({id:'g_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),name:'',type,deadline:'',progress:0});
+  renderGoalsEditor();
+  setTimeout(()=>{ const inputs=document.querySelectorAll('[id^="gname-"]'); if(inputs.length) inputs[inputs.length-1].focus(); },50);
+}
+
+function removeGoal(i){ S.goals.splice(i,1); renderGoalsEditor(); }
+
+async function saveGoals(){
+  const nameInputs=document.querySelectorAll('[id^="gname-"]');
+  const dateInputs=document.querySelectorAll('[id^="gdate-"]');
+  nameInputs.forEach((el,i)=>{
+    if(S.goals[i]){ S.goals[i].name=el.value.trim(); S.goals[i].deadline=dateInputs[i]?.value||''; }
+  });
+  S.goals=S.goals.filter(g=>g.name);
+  await saveUserSettings(); 
+  showToast('Goals saved ✓'); 
+  renderGoalsEditor(); 
+  renderWeeklyGoals();
+}
+
+async function saveGroqKey(){
+  S.groqKey=document.getElementById('set-groq-key').value.trim();
+  localStorage.setItem('groq_key',S.groqKey); showToast('API key saved ✓');
+}
+
+async function saveMonthSettings(){
+  S.month=parseInt(document.getElementById('set-month').value);
+  S.year=parseInt(document.getElementById('set-year').value);
+  await loadMonthLogs(); updateSidebar(); showToast('Month updated ✓');
+  calViewMonth=S.month; calViewYear=S.year;
+}
+
+async function clearMonthData(){
+  if(!confirm('Clear ALL logged data for this month? Cannot be undone.')) return;
+  const from=dateKey(1,S.month,S.year);
+  const to=dateKey(daysInMonth(S.month,S.year),S.month,S.year);
+  await sb.from('logs').delete().eq('user_id',currentUser.id).gte('date',from).lte('date',to);
+  S.days={}; showToast('Data cleared'); initToday(todayStr());
+}
+
+// ─── SIDEBAR ──────────────────────────────────────────────────────────────────
+function updateSidebar(){
+  const dim=daysInMonth(S.month,S.year);
+  document.getElementById('sidebar-month').textContent=MONTHS[S.month]+' '+S.year;
+  document.getElementById('sidebar-day').textContent=`Day ${new Date().getDate()} of ${dim}`;
+}
+
+// ─── BOOT ─────────────────────────────────────────────────────────────────────
+(async()=>{
+  const {data:{session}}=await sb.auth.getSession();
+  if(session?.user){ currentUser=session.user; await initApp(); }
+  document.getElementById('auth-password').addEventListener('keydown',e=>{ if(e.key==='Enter') handleAuth(); });
+  document.getElementById('auth-email').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('auth-password').focus(); });
+})();
+</script>
+</body>
+</html>
