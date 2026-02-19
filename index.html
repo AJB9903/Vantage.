@@ -34,7 +34,6 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .auth-btn:hover{background:#cce800;transform:translateY(-1px)}
 .auth-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
 .auth-err{color:var(--red);font-size:0.75rem;margin-top:10px;font-family:'Space Mono',monospace;min-height:18px}
-.auth-ok{color:var(--green);font-size:0.75rem;margin-top:10px;font-family:'Space Mono',monospace}
 
 /* APP LAYOUT */
 #app{display:none;grid-template-columns:240px 1fr;min-height:100vh;position:relative;z-index:1}
@@ -71,7 +70,6 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .grid{display:grid;gap:12px}
 .g4{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
 .g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
-.g3{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
 
 /* CARDS */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px}
@@ -153,15 +151,13 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .cal-nav-btn:hover{border-color:var(--accent);color:var(--accent)}
 .cal-month-label{font-size:0.82rem;font-weight:700;font-family:'Space Mono',monospace}
 
-/* VOICE */
+/* VOICE & FEEDBACK */
 .voice-btn{display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 18px;cursor:pointer;font-family:'Syne',sans-serif;font-size:0.85rem;font-weight:600;color:var(--text);width:100%;transition:all .2s}
 .voice-btn:hover{border-color:var(--accent2);color:var(--accent2)}
 .voice-btn.recording{background:#001a15;border-color:var(--accent2);color:var(--accent2);animation:pulse 1s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
 .transcript-box{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:0.82rem;line-height:1.6;color:var(--muted);min-height:52px;margin-top:8px;font-style:italic}
 .transcript-box.has-text{color:var(--text);font-style:normal}
-
-/* AI FEEDBACK */
 .feedback-box{background:linear-gradient(135deg,#0d1a00,#000000);border:1px solid #1a3a00;border-radius:12px;padding:20px;font-size:0.83rem;line-height:1.7;position:relative}
 .fb-title{font-size:0.62rem;text-transform:uppercase;letter-spacing:2px;color:var(--accent);font-family:'Space Mono',monospace;margin-bottom:10px}
 .fb-text{color:#b0d090}
@@ -169,7 +165,12 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .analyze-btn:hover{background:#cce800;transform:translateY(-1px)}
 .analyze-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
 
-/* HEATMAP */
+/* AUTO SAVE INDICATOR */
+.save-status { font-family: 'Space Mono', monospace; font-size: 0.7rem; color: var(--muted); opacity: 0; transition: opacity 0.3s; }
+.save-status.visible { opacity: 1; }
+.save-status.success { color: var(--green); }
+
+/* HEATMAP & CHARTS */
 .heatmap-wrap{overflow-x:auto}
 .heatmap-row{display:flex;align-items:center;gap:6px;margin-bottom:4px}
 .hm-label{width:165px;flex-shrink:0;font-size:0.72rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -177,8 +178,6 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .hm-dot{width:13px;height:13px;border-radius:3px;cursor:default;flex-shrink:0;transition:transform .1s}
 .hm-dot:hover{transform:scale(1.4)}
 .hm-pct{font-size:0.68rem;font-family:'Space Mono',monospace;min-width:32px;text-align:right}
-
-/* CHARTS */
 .mood-chart{display:flex;align-items:flex-end;gap:3px;height:70px}
 .mb-wrap{display:flex;flex-direction:column;align-items:center;flex:1;height:100%;justify-content:flex-end}
 .mb{width:100%;border-radius:2px 2px 0 0;min-height:3px}
@@ -282,39 +281,39 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
           <div class="page-title">Vantage<span>.</span> Today</div>
           <div class="page-sub" id="today-date-label"></div>
         </div>
-        <button class="save-btn" onclick="saveDay()">Save Day →</button>
+        <div class="save-status" id="auto-save-status"></div>
       </div>
 
       <div class="grid g4 section-gap">
         <div class="card">
           <div class="card-label">Mood (1-10)</div>
           <div class="flex-row">
-            <input type="range" min="1" max="10" value="7" class="inp" id="inp-mood" oninput="document.getElementById('mood-val').textContent=this.value" style="flex:1"/>
+            <input type="range" min="1" max="10" value="7" class="inp" id="inp-mood" oninput="document.getElementById('mood-val').textContent=this.value; triggerAutoSaveDay();" style="flex:1"/>
             <div class="mood-display" id="mood-val">7</div>
           </div>
         </div>
         <div class="card">
           <div class="card-label">Weight (lbs)</div>
-          <input type="number" class="inp" id="inp-weight" placeholder="169.0" step="0.1"/>
+          <input type="number" class="inp" id="inp-weight" placeholder="169.0" step="0.1" oninput="triggerAutoSaveDay()"/>
         </div>
         <div class="card">
           <div class="card-label">Calories</div>
-          <input type="number" class="inp" id="inp-cals" placeholder="2200"/>
+          <input type="number" class="inp" id="inp-cals" placeholder="2200" oninput="triggerAutoSaveDay()"/>
         </div>
         <div class="card">
           <div class="card-label">Protein (g)</div>
-          <input type="number" class="inp" id="inp-protein" placeholder="175"/>
+          <input type="number" class="inp" id="inp-protein" placeholder="175" oninput="triggerAutoSaveDay()"/>
         </div>
       </div>
 
       <div class="today-grid section-gap">
         <div class="card">
           <div class="card-label">Sleep (hours)</div>
-          <input type="number" class="inp" id="inp-sleep" placeholder="7.5" step="0.5"/>
+          <input type="number" class="inp" id="inp-sleep" placeholder="7.5" step="0.5" oninput="triggerAutoSaveDay()"/>
         </div>
         <div class="card">
           <div class="card-label">Daily Win</div>
-          <input type="text" class="inp" id="inp-win" placeholder="What was today's W?"/>
+          <input type="text" class="inp" id="inp-win" placeholder="What was today's W?" oninput="triggerAutoSaveDay()"/>
         </div>
       </div>
 
@@ -339,7 +338,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
           <span id="voice-label">Tap to record - or type below</span>
         </button>
         <div class="transcript-box" id="transcript">Voice log will appear here...</div>
-        <textarea class="inp" id="text-log" placeholder="Or type your daily log here..." style="margin-top:8px;min-height:80px;resize:vertical;line-height:1.6"></textarea>
+        <textarea class="inp" id="text-log" placeholder="Or type your daily log here..." style="margin-top:8px;min-height:80px;resize:vertical;line-height:1.6" oninput="triggerAutoSaveDay()"></textarea>
         <button class="analyze-btn" id="analyze-btn" onclick="getAIFeedback()">✦ Analyze My Day &amp; Get Feedback</button>
       </div>
 
@@ -404,23 +403,23 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
           <div>
             <div class="page-title" style="font-size:1.3rem" id="cal-editing-label">Editing -</div>
           </div>
-          <button class="save-btn" onclick="saveCalDay()">Save →</button>
+          <div class="save-status" id="cal-auto-save-status"></div>
         </div>
         <div class="grid g4 section-gap">
           <div class="card">
             <div class="card-label">Mood</div>
             <div class="flex-row">
-              <input type="range" min="1" max="10" value="7" class="inp" id="cal-mood" oninput="document.getElementById('cal-mood-val').textContent=this.value" style="flex:1"/>
+              <input type="range" min="1" max="10" value="7" class="inp" id="cal-mood" oninput="document.getElementById('cal-mood-val').textContent=this.value; triggerAutoSaveCalDay();" style="flex:1"/>
               <div class="mood-display" id="cal-mood-val">7</div>
             </div>
           </div>
-          <div class="card"><div class="card-label">Weight</div><input type="number" class="inp" id="cal-weight" step="0.1"/></div>
-          <div class="card"><div class="card-label">Calories</div><input type="number" class="inp" id="cal-cals"/></div>
-          <div class="card"><div class="card-label">Protein (g)</div><input type="number" class="inp" id="cal-protein"/></div>
+          <div class="card"><div class="card-label">Weight</div><input type="number" class="inp" id="cal-weight" step="0.1" oninput="triggerAutoSaveCalDay()"/></div>
+          <div class="card"><div class="card-label">Calories</div><input type="number" class="inp" id="cal-cals" oninput="triggerAutoSaveCalDay()"/></div>
+          <div class="card"><div class="card-label">Protein (g)</div><input type="number" class="inp" id="cal-protein" oninput="triggerAutoSaveCalDay()"/></div>
         </div>
         <div class="today-grid section-gap">
-          <div class="card"><div class="card-label">Sleep (hrs)</div><input type="number" class="inp" id="cal-sleep" step="0.5"/></div>
-          <div class="card"><div class="card-label">Daily Win</div><input type="text" class="inp" id="cal-win"/></div>
+          <div class="card"><div class="card-label">Sleep (hrs)</div><input type="number" class="inp" id="cal-sleep" step="0.5" oninput="triggerAutoSaveCalDay()"/></div>
+          <div class="card"><div class="card-label">Daily Win</div><input type="text" class="inp" id="cal-win" oninput="triggerAutoSaveCalDay()"/></div>
         </div>
         <div class="card section-gap">
           <div class="card-label" style="margin-bottom:14px">Habits</div>
@@ -428,7 +427,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
         </div>
         <div class="card section-gap">
           <div class="card-label" style="margin-bottom:8px">Notes / Log</div>
-          <textarea class="inp" id="cal-log" style="min-height:80px;resize:vertical;line-height:1.6"></textarea>
+          <textarea class="inp" id="cal-log" style="min-height:80px;resize:vertical;line-height:1.6" oninput="triggerAutoSaveCalDay()"></textarea>
         </div>
       </div>
     </div>
@@ -523,6 +522,40 @@ let authMode = 'login';
 let calViewMonth = new Date().getMonth()+1;
 let calViewYear = new Date().getFullYear();
 let calSelectedDate = null;
+
+// ─── AUTO-SAVE LOGIC ──────────────────────────────────────────────────────────
+let saveTimeout;
+let saveCalTimeout;
+
+function triggerAutoSaveDay() {
+  const statusEl = document.getElementById('auto-save-status');
+  statusEl.textContent = 'Saving...';
+  statusEl.classList.remove('success');
+  statusEl.classList.add('visible');
+  
+  clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(async () => {
+    await saveDay();
+    statusEl.textContent = 'Auto-saved ✓';
+    statusEl.classList.add('success');
+    setTimeout(() => statusEl.classList.remove('visible'), 2000);
+  }, 1000); // 1 second debounce
+}
+
+function triggerAutoSaveCalDay() {
+  const statusEl = document.getElementById('cal-auto-save-status');
+  statusEl.textContent = 'Saving...';
+  statusEl.classList.remove('success');
+  statusEl.classList.add('visible');
+
+  clearTimeout(saveCalTimeout);
+  saveCalTimeout = setTimeout(async () => {
+    await saveCalDay();
+    statusEl.textContent = 'Auto-saved ✓';
+    statusEl.classList.add('success');
+    setTimeout(() => statusEl.classList.remove('visible'), 2000);
+  }, 1000); // 1 second debounce
+}
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 const MONTHS = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -710,7 +743,7 @@ function renderHabitList(dk){
     const el=document.createElement('div');
     el.className='habit-item'+(checked?' done':'');
     el.onclick=()=>toggleHabit(dk,h,'habit-list',initToday.bind(null,dk));
-    el.innerHTML=`<div class="habit-left"><div class="habit-cb">${checked?'✓':''}</div><div class="habit-name">${h}</div></div><div style="font-size:0.65rem;color:var(--muted);font-family:'Space Mono',monospace">${checked?'✓':'—'}</div>`;
+    el.innerHTML=`<div class="habit-left"><div class="habit-cb">${checked?'✓':''}</div><div class="habit-name">${h}</div></div><div style="font-size:0.65rem;color:var(--muted);font-family:'Space Mono',monospace">${checked?'✓':'-'}</div>`;
     list.appendChild(el);
   });
   document.getElementById('habit-count-label').textContent=`${done}/${S.habits.length}`;
@@ -736,7 +769,6 @@ async function saveDay(){
   d.win=document.getElementById('inp-win').value;
   d.log=document.getElementById('text-log').value;
   await saveDayToDB(dk,d);
-  showToast('Day saved ✓');
 }
 
 // ─── WEEKLY GOALS ─────────────────────────────────────────────────────────────
@@ -828,7 +860,11 @@ function toggleVoice(){
     const box=document.getElementById('transcript');
     box.textContent=(final||interim)||'Listening...';
     box.classList.toggle('has-text',!!(final||interim));
-    if(final){ const ta=document.getElementById('text-log'); ta.value=(ta.value?ta.value+' ':'')+final; }
+    if(final){ 
+      const ta=document.getElementById('text-log'); 
+      ta.value=(ta.value?ta.value+' ':'')+final;
+      triggerAutoSaveDay(); 
+    }
   };
   recognition.onend=()=>{ isRecording=false; document.getElementById('voice-btn').classList.remove('recording'); document.getElementById('voice-icon').textContent='🎙️'; document.getElementById('voice-label').textContent='Tap to record - or type below'; };
   recognition.start();
@@ -1049,7 +1085,6 @@ async function saveCalDay(){
   d.log=document.getElementById('cal-log').value;
   await saveDayToDB(dk,d);
   renderCalendar();
-  showToast('Day updated ✓');
 }
 
 // ─── WINS ─────────────────────────────────────────────────────────────────────
